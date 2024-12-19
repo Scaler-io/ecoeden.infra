@@ -7,16 +7,6 @@ services:
       - 15672:15672
     networks:
       - ecoeden_dev_net
-  
-  ecoeden.jager:
-    image: jaegertracing/all-in-one:latest
-    container_name: ecoeden.jager
-    ports:
-     - 4317:4317
-     - 4318:4318
-     - 16686:16686
-    networks:
-      - ecoeden_dev_net
 
   redis:
     image: redis:latest
@@ -25,7 +15,7 @@ services:
       - 6379:6379
     networks:
       - ecoeden_dev_net
-  
+
   redisinsight:
     image: redis/redisinsight:latest
     container_name: redisinsight
@@ -38,6 +28,61 @@ services:
     volumes:
       - redisinsight:/data
 
-ncz
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.9.2
+    container_name: "elasticsearch"
+    ports:
+      - 9200:9200
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    environment:
+      - xpack.monitoring.enabled=true
+      - xpack.watcher.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - discovery.type=single-node
+    networks:
+      - ecoeden_dev_net
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.9.2
+    container_name: kibana
+    ports:
+      - 5601:5601
+    depends_on:
+      - elasticsearch
+    environment:
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+    networks:
+      - ecoeden_dev_net
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=P@ssw0rd
+      - MSSQL_PID=Express
+    ports:
+      - 1433:1433
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    networks:
+      - ecoeden_dev_net
+
+  zipkin:
+    image: openzipkin/zipkin:latest
+    container_name: ecoeden.zipkin
+    ports:
+      - "9411:9411" # Zipkin Web UI
+    networks:
+      - ecoeden_dev_net
+
+networks:
+  ecoeden_dev_net:
+    external: true
+
 volumes:
   redisinsight:
+  elasticsearch-data:
+  sqlserver_data:
+  kong_data:
